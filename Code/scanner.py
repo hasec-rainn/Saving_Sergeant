@@ -1,4 +1,6 @@
 # references: https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
+# https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
+
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
 import argparse
@@ -23,10 +25,18 @@ receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Sav
 orig = cv2.imread(receipt_folder + args["image"])
 
 # do some image processing so that the OCR can be more accurate
+#first, let's make the image grayscale
 receipt = cv2.cvtColor(orig,cv2.COLOR_BGR2GRAY)
-# show transformed image
-cv2.imshow("Receipt Transform", imutils.resize(receipt, width=500))
-cv2.waitKey(0)
+#then make it binary: only black and white, no gray
+_, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+#make sure the rotation is correct
+
+#add a border (because apparently tesseract works better if one exists)
+
+# show transformed image (if in debug mode)
+if args["debug"]:
+	cv2.imshow("Receipt Transform", imutils.resize(receipt, width=500))
+	cv2.waitKey(0)
 
 # apply OCR to the receipt image by assuming column data, ensuring
 # the text is *concatenated across the row* (additionally, for your
