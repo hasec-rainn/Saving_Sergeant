@@ -76,6 +76,10 @@ if "The Book Bin" in text:
 	t["vendor"] = "The Book Bin"
 	t["category"] = "Entertainment"
 	t["location"] = "Corvallis"
+	t["transaction_date"] = re.search("((January)|(Febuary)|(March)|(April)|(May)|(June)|(July)|(August)|(September)|(October)|(November)|(December)) [1-3][0-9] [0-9]{4}", text)
+	if t["transaction_date"]:
+		#if a date was found, then format it
+		t["transaction_date"] = t["transaction_date"].group()
 
 	lines = text.split("\n")
 	for l in range(0, len(lines)):
@@ -93,11 +97,7 @@ if "The Book Bin" in text:
 				new_transaction["item_key"] = lines[l+1]
 			else:
 				new_transaction["item_key"] = lines[l+2]
+
 			transactions.append(new_transaction)
 
 print(transactions)
-
-
-			
-
-	
