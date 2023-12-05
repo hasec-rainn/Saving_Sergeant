@@ -22,7 +22,7 @@ args = vars(ap.parse_args())
 # get image path and add a border to image (tesseract works better with bordered images)
 receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Receipts/"
 image_path = receipt_folder + args["image"]
-cmd = ["magick", "convert", image_path, "-bordercolor", "Black", "-border", "10x10", image_path + "_border.jpg"]
+cmd = ["magick", "convert", image_path, "-bordercolor", "Black", "-border", "30x30", image_path + "_border.jpg"]
 subprocess.run(cmd)
 image_path = image_path + "_border.jpg"
 
@@ -41,7 +41,17 @@ _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 # show transformed image (if in debug mode)
 if args["debug"]:
-	cv2.imshow("Receipt Transform", imutils.resize(receipt, width=500))
+	debug_receipt = receipt.copy()
+	cv2.imshow("Receipt Transform", imutils.resize(debug_receipt, width=500))
+	image_data = pytesseract.image_to_data(debug_receipt, output_type=pytesseract.Output.DICT)
+	cv2.waitKey(0)
+
+	#draw and display bounding boxes
+	n_boxes = len(image_data['level'])
+	for b in range(n_boxes):
+		(x, y, w, h) = (image_data['left'][b], image_data['top'][b], image_data['width'][b], image_data['height'][b])
+		cv2.rectangle(debug_receipt, (x,y), (x+w,y+h), (150,0,150), 5)
+	cv2.imshow("Receipt BB", imutils.resize(debug_receipt, width=500))
 	cv2.waitKey(0)
 
 # apply OCR to the receipt image by assuming column data, ensuring
@@ -56,6 +66,8 @@ text = pytesseract.image_to_string(
 print("[INFO] raw output:")
 print("==================")
 print(text)
+with open("out.txt", "w") as f:
+	f.write(text)
 print("\n")
 
 #data to be determined by the vendor
@@ -91,13 +103,59 @@ if "The Book Bin" in text:
 			#left side will be the quantity, right side *individual* item cost
 			qc = re_str.group().split("@ ")
 			new_transaction["quantity"] = int(qc[0])
-			new_transaction["dollars"] = float(qc[0]) * float(qc[1])
+			new_transaction["dollars"] = float(qc[0]) * float(qc[1]) #multiply to get total cost
 			#The following line (or line after) will contain the item name (ie item_key)
-			if re.search("[A-Z,a-z]+", lines[l+1]):
+			if re.search("[A-Z,a-z]+", lines[l+1]): #check if following line is empty
 				new_transaction["item_key"] = lines[l+1]
 			else:
 				new_transaction["item_key"] = lines[l+2]
 
 			transactions.append(new_transaction)
+
+
+if "WinCo" in text or "Winco" in text:
+	#fill in some blanks about our transactions
+	t["vendor"] = "WinCo Foods"
+	t["category"] = "Groceries"
+	t["location"] = "Eugene"
+	t["transaction_date"] = re.search("[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}", text)
+	if t["transaction_date"]:
+		#if a date was found, then format it
+		t["transaction_date"] = t["transaction_date"].group()
+
+	lines = text.split("\n")
+	for l in range(0, len(lines)):
+		#use RE to find transaction items in the text
+		re_str = re.search("[A-Z]+", lines[l])
+		#take transaction items and format it, then place into transactions[]
+		if re_str:
+			new_transaction = copy.deepcopy(t)
+			#left side will be the quantity, right side *individual* item cost
+			qc = re_str.group().split("@ ")
+			new_transaction["quantity"] = int(qc[0])
+			new_transaction["dollars"] = float(qc[0]) * float(qc[1]) #multiply to get total cost
+			#The following line (or line after) will contain the item name (ie item_key)
+			if re.search("[A-Z,a-z]+", lines[l+1]): #check if following line is empty
+				new_transaction["item_key"] = lines[l+1]
+			else:
+				new_transaction["item_key"] = lines[l+2]
+
+			transactions.append(new_transaction)
+
+
+#create new csv file from transactions and place in Data folder with unique name
+csv_path = "Data/" + t["whose_transaction"].replace(" ","_") \
+	+ "_" + t["vendor"].replace(" ","_") \
+	+ "_" + t["transaction_date"].replace(" ","_") + ".csv"
+with open(csv_path,"w") as output_csv:
+	for item in transactions:
+		output_csv.write(item["vendor"] + ",")
+		output_csv.write(item["whose_transaction"] + ",")
+		output_csv.write(item["category"] + ",")
+		output_csv.write(item["transaction_date"] + ",")
+		output_csv.write(item["location"] + ",")
+		output_csv.write(item["item_key"] + ",")
+		output_csv.write(str(item["quantity"]) + ",")
+		output_csv.write(str(item["dollars"]) + "\n")
 
 print(transactions)
