@@ -19,7 +19,7 @@ ap.add_argument("-d", "--debug", type=int, default=-1,
 	help="whether or not we are visualizing each step of the pipeline")
 args = vars(ap.parse_args())
 
-# get image path and add a border to image (tesseract works better with bordered images)
+# create and use new image with a border (tesseract works better with bordered images)
 receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Receipts/"
 image_path = receipt_folder + args["image"]
 cmd = ["magick", "convert", image_path, "-bordercolor", "Black", "-border", "30x30", image_path + "_border.jpg"]
@@ -34,8 +34,10 @@ receipt = cv2.imread(image_path)
 receipt = cv2.cvtColor(receipt,cv2.COLOR_BGR2GRAY)
 #then make it binary: only black and white, no gray
 _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-#receipt_adaptive = cv2.adaptiveThreshold(receipt,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 7, 2) 
-
+#resize the image for better accuracy
+#cv2.INTER_AREA is used since we are downsizing
+receipt = imutils.resize(receipt, width=500, inter=cv2.INTER_AREA)
+cv2.imwrite(image_path,receipt)
 
 
 
@@ -54,10 +56,7 @@ if args["debug"]:
 	cv2.imshow("Receipt BB", imutils.resize(debug_receipt, width=500))
 	cv2.waitKey(0)
 
-# apply OCR to the receipt image by assuming column data, ensuring
-# the text is *concatenated across the row* (additionally, for your
-# own images you may need to apply additional processing to cleanup
-# the image, including resizing, thresholding, etc.)
+# apply OCR to the receipt image by assuming column data
 options = "--psm 4"
 text = pytesseract.image_to_string(
 	cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB),
@@ -90,7 +89,7 @@ if "The Book Bin" in text:
 	t["location"] = "Corvallis"
 	t["transaction_date"] = re.search("((January)|(Febuary)|(March)|(April)|(May)|(June)|(July)|(August)|(September)|(October)|(November)|(December)) [1-3][0-9] [0-9]{4}", text)
 	if t["transaction_date"]:
-		#if a date was found, then format it
+		#if a date was found, then format it as string
 		t["transaction_date"] = t["transaction_date"].group()
 
 	lines = text.split("\n")
