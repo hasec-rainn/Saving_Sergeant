@@ -2,7 +2,7 @@
 # https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
 
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
+options = r'--tessdata-dir "C:\Program Files\Tesseract-OCR\tessdata_best"'
 import argparse
 import imutils
 import cv2
@@ -32,13 +32,15 @@ receipt = cv2.imread(image_path)
 # do some image processing so that the OCR can be more accurate
 #first, let's make the image grayscale
 receipt = cv2.cvtColor(receipt,cv2.COLOR_BGR2GRAY)
+
 #then make it binary: only black and white, no gray
 _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
 #resize the image for better accuracy
 #cv2.INTER_AREA is used since we are downsizing
-receipt = imutils.resize(receipt, width=500, inter=cv2.INTER_AREA)
+new_width = int(receipt.shape[1] * 0.5) #typecast as int to floor
+receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
 cv2.imwrite(image_path,receipt)
-
 
 
 # show transformed image (if in debug mode)
@@ -57,14 +59,14 @@ if args["debug"]:
 	cv2.waitKey(0)
 
 # apply OCR to the receipt image by assuming column data
-options = "--psm 4"
+options += " " + "--psm 4"
+options += " " + "-c tessedit_char_whitelist= @0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 text = pytesseract.image_to_string(
 	cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB),
 	config=options)
 # show the raw output of the OCR process
 print("[INFO] raw output:")
 print("==================")
-print(text)
 with open("out.txt", "w") as f:
 	f.write(text)
 print("\n")
