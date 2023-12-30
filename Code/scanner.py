@@ -43,14 +43,14 @@ receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
 cv2.imwrite(image_path,receipt)
 
 
-# show transformed image (if in debug mode)
+# show transformed image and bounding boxes (if in debug mode)
 if args["debug"]:
 	debug_receipt = receipt.copy()
 	cv2.imshow("Receipt Transform", imutils.resize(debug_receipt, width=500))
-	image_data = pytesseract.image_to_data(debug_receipt, output_type=pytesseract.Output.DICT)
 	cv2.waitKey(0)
 
 	#draw and display bounding boxes
+	image_data = pytesseract.image_to_data(debug_receipt, output_type=pytesseract.Output.DICT)
 	n_boxes = len(image_data['level'])
 	for b in range(n_boxes):
 		(x, y, w, h) = (image_data['left'][b], image_data['top'][b], image_data['width'][b], image_data['height'][b])
@@ -60,7 +60,7 @@ if args["debug"]:
 
 # apply OCR to the receipt image by assuming column data
 options += " " + "--psm 4"
-options += " " + "-c tessedit_char_whitelist= @0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+options += " " + "-c tessedit_char_whitelist=' .#@0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'"
 text = pytesseract.image_to_string(
 	cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB),
 	config=options)
