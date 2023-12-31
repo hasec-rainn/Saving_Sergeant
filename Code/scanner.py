@@ -1,5 +1,7 @@
-# references: https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
+# references: 
+# https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
 # https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
+# https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
 
 import pytesseract
 options = r'--tessdata-dir "C:\Program Files\Tesseract-OCR\tessdata_best"'
@@ -7,10 +9,32 @@ import argparse
 import imutils
 import cv2
 import re
-import sys
+import numpy as np
 import subprocess
 import copy
-import os
+
+#Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
+#Tesseract performs optimally when capital letters are ~32px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ). Smaller text obviously can't be OCR'd as accurately, but weirdly enough, larger text causes problems as well. So, this function uses the bounding boxes we've found and resizes the image so that the median line height should be ~32px.
+# function by rinogo
+def optimal_resize(img, boxes):
+	median_height = np.median(boxes["height"])
+	print("median height is:", median_height)
+	target_height = 32 #See https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ
+	scale_factor = target_height / median_height
+	print("Scale factor: " + str(scale_factor))
+
+	#If the image is already within `skip_percentage` percent of the target size, just return the original image (it's better to skip resizing if we can)
+	skip_percentage = 0.07
+	if(scale_factor > 1 - skip_percentage and scale_factor < 1 + skip_percentage):
+		return img
+
+	#Bicubic for enlarging, "pixel area relation" for reduction. (See https://chadrick-kwag.net/cv2-resize-interpolation-methods/)
+	if(scale_factor > 1.0):
+		interpolation = cv2.INTER_CUBIC
+	else:
+		interpolation = cv2.INTER_AREA
+
+	return cv2.resize(img, None, fx = scale_factor, fy = scale_factor, interpolation = interpolation)
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -39,10 +63,13 @@ _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 #resize the image for better accuracy
 #cv2.INTER_AREA is used since we are downsizing
-new_width = int(receipt.shape[1] * 0.5) #typecast as int to floor
-receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
+# new_width = int(receipt.shape[1] * 0.5) #typecast as int to floor
+# receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
+boxes = pytesseract.image_to_data(receipt, output_type=pytesseract.Output.DICT)
+if args["debug"]:
+	cv2.imshow("Before resize", imutils.resize(receipt,width=500))
+receipt = optimal_resize(receipt, boxes)
 cv2.imwrite(image_path,receipt)
-
 
 # show transformed image and bounding boxes (if in debug mode)
 if args["debug"]:
@@ -68,9 +95,6 @@ text = pytesseract.image_to_string(
 # write out the raw output of the OCR process
 with open("out.txt", "w") as f:
 	f.write(text)
-
-#erase processed image now that we're done using it
-os.remove(image_path)
 
 exit(0)
 
