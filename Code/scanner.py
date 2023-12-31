@@ -10,6 +10,7 @@ import re
 import sys
 import subprocess
 import copy
+import os
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -64,12 +65,14 @@ options += " " + "-c tessedit_char_whitelist=' .#@0123456789ABCDEFGHIJKLMNOPQRST
 text = pytesseract.image_to_string(
 	cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB),
 	config=options)
-# show the raw output of the OCR process
-print("[INFO] raw output:")
-print("==================")
+# write out the raw output of the OCR process
 with open("out.txt", "w") as f:
 	f.write(text)
-print("\n")
+
+#erase processed image now that we're done using it
+os.remove(image_path)
+
+exit(0)
 
 #data to be determined by the vendor
 transactions = [] #list used to hold all purchases/transactions
