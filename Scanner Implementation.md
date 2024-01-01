@@ -6,13 +6,14 @@ The implementation of the scanner will involve understanding the scanner well en
 - [x] Grayscale
 - [x] Binarization
 - [x] Correct page segmentation (psm)
-- [ ] Resizing
+- [x] Resizing
 	- [x] 50% Scale
 	- [x] Dynamic resizing via bounding box measurements
 - [x] Custom training data (`tessdata_best`)
 - [x] Whitelisting characters
 - [x] Image segmentation (no improvement)
-- [ ] See if "right-hand text bug" can be replicated on other
+- [ ] Custom training data
+- [ ] See if "right-hand text bug" can be replicated on other images
 
 ### References
 https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ
