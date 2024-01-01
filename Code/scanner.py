@@ -2,6 +2,7 @@
 # https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
 # https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
 # https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
+# https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
 
 import pytesseract
 options = r'--tessdata-dir "C:\Program Files\Tesseract-OCR\tessdata_best"'
@@ -14,8 +15,8 @@ import subprocess
 import copy
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
-#Tesseract performs optimally when capital letters are ~32px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ). Smaller text obviously can't be OCR'd as accurately, but weirdly enough, larger text causes problems as well. So, this function uses the bounding boxes we've found and resizes the image so that the median line height should be ~32px.
-# function by rinogo
+#Tesseract performs optimally when capital letters are ~32px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
+# function by rinogo https://gist.github.com/rinogo/294e723ac9e53c23d131e5852312dfe8
 def optimal_resize(img, boxes):
 	median_height = np.median(boxes["height"])
 	print("median height is:", median_height)
@@ -35,6 +36,8 @@ def optimal_resize(img, boxes):
 		interpolation = cv2.INTER_AREA
 
 	return cv2.resize(img, None, fx = scale_factor, fy = scale_factor, interpolation = interpolation)
+
+
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -61,13 +64,11 @@ receipt = cv2.cvtColor(receipt,cv2.COLOR_BGR2GRAY)
 #then make it binary: only black and white, no gray
 _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-#resize the image for better accuracy
-#cv2.INTER_AREA is used since we are downsizing
+#dynamically resize the image so characters are 32pt tall
+#see
 # new_width = int(receipt.shape[1] * 0.5) #typecast as int to floor
 # receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
 boxes = pytesseract.image_to_data(receipt, output_type=pytesseract.Output.DICT)
-if args["debug"]:
-	cv2.imshow("Before resize", imutils.resize(receipt,width=500))
 receipt = optimal_resize(receipt, boxes)
 cv2.imwrite(image_path,receipt)
 
@@ -96,7 +97,14 @@ text = pytesseract.image_to_string(
 with open("out.txt", "w") as f:
 	f.write(text)
 
-exit(0)
+"""
+The initial scan is used to determine the origin of the receipt.
+
+After determining the origin, further preprocessing is performed if tesseract would be unable
+to accurately read the receipt otherwise. If more preprocessing is required, then tesseract
+is called again, and the results of this call are used to fill up the SQL record; 
+otherwise, the results of the initial call to tesseract is used.
+"""
 
 #data to be determined by the vendor
 transactions = [] #list used to hold all purchases/transactions
@@ -112,6 +120,8 @@ t = {
 }
 
 if "The Book Bin" in text:
+	#one of the cases where no
+
 	#fill in some blanks about our transactions
 	t["vendor"] = "The Book Bin"
 	t["category"] = "Entertainment"
