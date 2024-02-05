@@ -15,7 +15,7 @@ import subprocess
 import copy
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
-#Tesseract performs optimally when capital letters are ~32px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
+#Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
 # function by rinogo https://gist.github.com/rinogo/294e723ac9e53c23d131e5852312dfe8
 def optimal_resize(img, boxes):
 	median_height = np.median(boxes["height"])
@@ -119,8 +119,10 @@ t = {
 	"dollars" : None
 }
 
+
+
 if "The Book Bin" in text:
-	#one of the cases where no
+	#one of the cases where no additional preprocessing is required
 
 	#fill in some blanks about our transactions
 	t["vendor"] = "The Book Bin"
@@ -152,6 +154,11 @@ if "The Book Bin" in text:
 
 
 if "WinCo" in text or "Winco" in text:
+	#TO DO 
+	#Winco receipts need additional preprocessing to be tesseract-readable
+
+	receipt = cv2.GaussianBlur(receipt, (1,1), 0)
+
 	#fill in some blanks about our transactions
 	t["vendor"] = "WinCo Foods"
 	t["category"] = "Groceries"
