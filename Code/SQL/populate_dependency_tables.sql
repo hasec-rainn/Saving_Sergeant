@@ -29,6 +29,7 @@ INSERT INTO vendors VALUES (11, "Dollar Tree");
 INSERT INTO vendors VALUES (12, "76 Gas");
 INSERT INTO vendors VALUES (13, "Rifes");
 INSERT INTO vendors VALUES (14, "The Book Bin");
+INSERT INTO vendors VALUES (15, "HP Pho Ga");
 
 INSERT INTO brands VALUES
 (1, 'Kikkoman'),
@@ -67,3 +68,4 @@ INSERT INTO locations VALUES
 (1, 'Corvallis'),
 (2, 'Eugene')
 ;
+INSERT INTO locations VALUES (3, "Los Angeles");
