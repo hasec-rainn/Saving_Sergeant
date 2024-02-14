@@ -1,8 +1,12 @@
-# references: 
-# https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
-# https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
-# https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
-# https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
+"""
+This program 
+
+references: 
+https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
+https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
+https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
+https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
+"""
 
 import pytesseract
 options = r'--tessdata-dir "C:\Program Files\Tesseract-OCR\tessdata_best"'
@@ -13,6 +17,8 @@ import re
 import numpy as np
 import subprocess
 import copy
+import time
+
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
@@ -110,6 +116,7 @@ otherwise, the results of the initial call to tesseract is used.
 transactions = [] #list used to hold all purchases/transactions
 t = {
 	"vendor" : None,
+	"brand" : None,
 	"whose_transaction" : "Chase Nairn-Howard",
 	"category" : None,
 	"transaction_date" : None,
@@ -120,18 +127,20 @@ t = {
 }
 
 
-
 if "The Book Bin" in text:
 	#one of the cases where no additional preprocessing is required
 
 	#fill in some blanks about our transactions
 	t["vendor"] = "The Book Bin"
+	t["brand"] = ''
 	t["category"] = "Entertainment"
 	t["location"] = "Corvallis"
 	t["transaction_date"] = re.search("((January)|(Febuary)|(March)|(April)|(May)|(June)|(July)|(August)|(September)|(October)|(November)|(December)) [1-3][0-9] [0-9]{4}", text)
+	#if a date was found, then format it as a SQL-readable string
 	if t["transaction_date"]:
-		#if a date was found, then format it as string
-		t["transaction_date"] = t["transaction_date"].group()
+		t["transaction_date"] = t["transaction_date"].group() #to make into one string
+		t["transaction_date"] =\
+			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%B %d %Y"))
 
 	lines = text.split("\n")
 	for l in range(0, len(lines)):
@@ -157,7 +166,7 @@ if "WinCo" in text or "Winco" in text:
 	#TO DO 
 	#Winco receipts need additional preprocessing to be tesseract-readable
 
-	receipt = cv2.GaussianBlur(receipt, (1,1), 0)
+	#receipt = cv2.GaussianBlur(receipt, (1,1), 0)
 
 	#fill in some blanks about our transactions
 	t["vendor"] = "WinCo Foods"
@@ -195,12 +204,13 @@ csv_path = "Data/" + t["whose_transaction"].replace(" ","_") \
 with open(csv_path,"w") as output_csv:
 	for item in transactions:
 		output_csv.write(item["vendor"] + ",")
+		output_csv.write(item["brand"] + ",")
 		output_csv.write(item["whose_transaction"] + ",")
 		output_csv.write(item["category"] + ",")
 		output_csv.write(item["transaction_date"] + ",")
 		output_csv.write(item["location"] + ",")
-		output_csv.write(item["item_key"] + ",")
 		output_csv.write(str(item["quantity"]) + ",")
-		output_csv.write(str(item["dollars"]) + "\n")
+		output_csv.write(str(item["dollars"]) + ",")
+		output_csv.write(item["item_key"] + "\n")
 
 print(transactions)
