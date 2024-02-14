@@ -207,14 +207,12 @@ if "HP Pho Ga" in text:
 	if t["transaction_date"]:
 		t["transaction_date"] = t["transaction_date"].group() #to make into one string
 		t["transaction_date"] =\
-			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%b %d %Y"))
+			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%b %y %Y"))
 
 	lines = text.split("\n")
 	for l in range(0, len(lines)):
 		#use RE to find transaction items in the text
 		re_str = re.search("[0-9]+ (( )|[a-z]|[A-Z])+ [0-9]+\.[0-9][0-9]", lines[l])
-		if args["debug"]:
-			print(re_str)
 		#take transaction items and format it, then place into transactions[]
 		if re_str:
 			new_transaction = copy.deepcopy(t)
