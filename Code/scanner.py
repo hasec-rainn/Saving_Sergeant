@@ -72,8 +72,6 @@ _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 #dynamically resize the image so characters are 32pt tall
 #see
-# new_width = int(receipt.shape[1] * 0.5) #typecast as int to floor
-# receipt = imutils.resize(receipt, width=new_width, inter=cv2.INTER_AREA)
 boxes = pytesseract.image_to_data(receipt, output_type=pytesseract.Output.DICT)
 receipt = optimal_resize(receipt, boxes)
 cv2.imwrite(image_path,receipt)
@@ -193,6 +191,41 @@ if "WinCo" in text or "Winco" in text:
 				new_transaction["item_key"] = lines[l+1]
 			else:
 				new_transaction["item_key"] = lines[l+2]
+
+			transactions.append(new_transaction)
+
+if "HP Pho Ga" in text:
+	#one of the cases where no additional preprocessing is required
+
+	#fill in some blanks about our transactions
+	t["vendor"] = "HP Pho Ga"
+	t["brand"] = ''
+	t["category"] = "Eating Out"
+	t["location"] = "Los Angeles"
+	t["transaction_date"] = re.search("((Jan)|(Feb)|(Mar)|(Apr)|(May)|(Jun)|(Jul)|(Aug)|(Sep)|(Oct)|(Nov)|(Dec)) [0-3][0-9] [0-9]{4}", text)
+	#if a date was found, then format it as a SQL-readable string
+	if t["transaction_date"]:
+		t["transaction_date"] = t["transaction_date"].group() #to make into one string
+		t["transaction_date"] =\
+			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%b %d %Y"))
+
+	lines = text.split("\n")
+	for l in range(0, len(lines)):
+		#use RE to find transaction items in the text
+		re_str = re.search("[0-9]+ (( )|[a-z]|[A-Z])+ [0-9]+\.[0-9][0-9]", lines[l])
+		if args["debug"]:
+			print(re_str)
+		#take transaction items and format it, then place into transactions[]
+		if re_str:
+			new_transaction = copy.deepcopy(t)
+			#left side will be the quantity, right side *individual* item cost
+			re_str = re_str.group().split(" ")
+			new_transaction["quantity"] = int(re_str[0]) #very first item before space is quantity
+			new_transaction["dollars"] = float(re_str[len(re_str)-1]) #Last item after space is total cost
+			#all the other lines, when taken together, are the name of the item
+			re_str.pop(len(re_str)-1); re_str.pop(0)
+			new_transaction["item_key"] = ' '.join(re_str)
+			
 
 			transactions.append(new_transaction)
 
