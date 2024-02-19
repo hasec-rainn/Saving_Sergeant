@@ -19,6 +19,13 @@ import subprocess
 import copy
 import time
 
+# EDIT ME:
+# Change the below variables to match your own system
+# and preferences
+receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Receipts/"
+ocr_debug_output = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/"
+csv_data_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/"
+who_purchased = input("Enter the full name of who made this transaction: ")
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
@@ -54,7 +61,6 @@ ap.add_argument("-d", "--debug", type=int, default=-1,
 args = vars(ap.parse_args())
 
 # create and use new image with a border (tesseract works better with bordered images)
-receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Receipts/"
 image_path = receipt_folder + args["image"]
 cmd = ["magick", "convert", image_path, "-bordercolor", "Black", "-border", "30x30", image_path + "_border.jpg"]
 subprocess.run(cmd)
@@ -93,29 +99,23 @@ if args["debug"]:
 
 # apply OCR to the receipt image by assuming column data
 options += " " + "--psm 4"
-options += " " + "-c tessedit_char_whitelist=' .#@0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'"
+options += " " + "-c tessedit_char_whitelist=' .#$@0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'"
 text = pytesseract.image_to_string(
 	cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB),
-	config=options)
+	config=options
+)
 # write out the raw output of the OCR process
-with open("out.txt", "w") as f:
-	f.write(text)
+if args["debug"]:
+	with open(ocr_debug_output + "ocr_out.txt", "w") as f:
+		f.write(text)
 
-"""
-The initial scan is used to determine the origin of the receipt.
-
-After determining the origin, further preprocessing is performed if tesseract would be unable
-to accurately read the receipt otherwise. If more preprocessing is required, then tesseract
-is called again, and the results of this call are used to fill up the SQL record; 
-otherwise, the results of the initial call to tesseract is used.
-"""
 
 #data to be determined by the vendor
 transactions = [] #list used to hold all purchases/transactions
 t = {
 	"vendor" : None,
 	"brand" : None,
-	"whose_transaction" : "Chase Nairn-Howard",
+	"whose_transaction" : who_purchased,
 	"category" : None,
 	"transaction_date" : None,
 	"location" : None,
@@ -160,39 +160,40 @@ if "The Book Bin" in text:
 			transactions.append(new_transaction)
 
 
-if "WinCo" in text or "Winco" in text:
-	#TO DO 
-	#Winco receipts need additional preprocessing to be tesseract-readable
-
-	#receipt = cv2.GaussianBlur(receipt, (1,1), 0)
+if "Dona Mercedes Restaurant" in text:
+	#one of the cases where no additional preprocessing is required
 
 	#fill in some blanks about our transactions
-	t["vendor"] = "WinCo Foods"
-	t["category"] = "Groceries"
-	t["location"] = "Eugene"
-	t["transaction_date"] = re.search("[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}", text)
-	if t["transaction_date"]:
-		#if a date was found, then format it
-		t["transaction_date"] = t["transaction_date"].group()
+	t["vendor"] = "Dona Mercedes Restaurant"
+	t["brand"] = ''
+	t["category"] = "Eating Out"
+	t["location"] = "San Faernando"
+
+	#Dona Mercedes doesn't record transaction date. We'll need to get it from user.
+	req ="Using format YYYY-MM-DD, please enter the transaction date of this receipt: "
+	t["transaction_date"] = input(req)
+	while not re.search("[1-3][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]", t["transaction_date"]):
+		t["transaction_date"] = input("Error: date not recognized. " + req)
 
 	lines = text.split("\n")
 	for l in range(0, len(lines)):
 		#use RE to find transaction items in the text
-		re_str = re.search("[A-Z]+", lines[l])
+		re_str = re.search("[0-9]+ ([a-z]|[A-Z]|( ))+ \$[0-9]+\.[0-9][0-9]", lines[l])
 		#take transaction items and format it, then place into transactions[]
 		if re_str:
 			new_transaction = copy.deepcopy(t)
-			#left side will be the quantity, right side *individual* item cost
-			qc = re_str.group().split("@ ")
-			new_transaction["quantity"] = int(qc[0])
-			new_transaction["dollars"] = float(qc[0]) * float(qc[1]) #multiply to get total cost
-			#The following line (or line after) will contain the item name (ie item_key)
-			if re.search("[A-Z,a-z]+", lines[l+1]): #check if following line is empty
-				new_transaction["item_key"] = lines[l+1]
-			else:
-				new_transaction["item_key"] = lines[l+2]
+			#leftmost is quantity, middle is item name, and right is summed-cost
+			re_str = re_str.group().split(" ")
+			new_transaction["quantity"] = int(re_str[0]) #very first item before space is quantity
+			#Last item after space is summed cost (we want indv so we divide)
+			new_transaction["dollars"] = float( float(re_str[len(re_str)-1].replace("$","")) / new_transaction["quantity"])
+			#all the other lines, when taken together, are the name of the item
+			re_str.pop(len(re_str)-1); re_str.pop(0)
+			new_transaction["item_key"] = ' '.join(re_str)
+			
 
 			transactions.append(new_transaction)
+
 
 if "HP Pho Ga" in text:
 	#one of the cases where no additional preprocessing is required
@@ -207,7 +208,7 @@ if "HP Pho Ga" in text:
 	if t["transaction_date"]:
 		t["transaction_date"] = t["transaction_date"].group() #to make into one string
 		t["transaction_date"] =\
-			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%b %y %Y"))
+			time.strftime("%Y-%m-%d",time.strptime(t["transaction_date"], "%b %M %Y"))
 
 	lines = text.split("\n")
 	for l in range(0, len(lines)):
@@ -218,8 +219,10 @@ if "HP Pho Ga" in text:
 			new_transaction = copy.deepcopy(t)
 			#left side will be the quantity, right side *individual* item cost
 			re_str = re_str.group().split(" ")
-			new_transaction["quantity"] = int(re_str[0]) #very first item before space is quantity
-			new_transaction["dollars"] = float(re_str[len(re_str)-1]) #Last item after space is total cost
+			#very first item before space is quantity
+			new_transaction["quantity"] = int(re_str[0])
+			#Last item after space is summed cost (we want indv so we divide)
+			new_transaction["dollars"] = float( float(re_str[len(re_str)-1]) / new_transaction["quantity"])
 			#all the other lines, when taken together, are the name of the item
 			re_str.pop(len(re_str)-1); re_str.pop(0)
 			new_transaction["item_key"] = ' '.join(re_str)
@@ -229,7 +232,7 @@ if "HP Pho Ga" in text:
 
 
 #create new csv file from transactions and place in Data folder with unique name
-csv_path = "Data/" + t["whose_transaction"].replace(" ","_") \
+csv_path = csv_data_folder + t["whose_transaction"].replace(" ","_") \
 	+ "_" + t["vendor"].replace(" ","_") \
 	+ "_" + t["transaction_date"].replace(" ","_") + ".csv"
 with open(csv_path,"w") as output_csv:
