@@ -8,6 +8,12 @@ This is contrasted with Saving Sergeant, which analyzes whole transactions *and 
 
 A good example of this difference is grocery shopping. Rocket Money and your bank can show you how much money you spent on groceries over the last 6 months; it can't, however, tell you which items were contributing the most to your grocery cost over this time period. It also can't compare the price of the same item from different stores. Nor can it show you the cost you spent on individual items.
 
+# Running the Program
+To run this program, you'll need to have ImageMagik and Google's tesseract installed and in your
+enviornment variables.
+Additionally, you'll want to edit Code/scanner.py and update its receipt, Data, and debug output
+pathes to match your system.
+
 # Tasks 
 
 | Task Name | Target Completion Date | Completion Date | Hours Invested |
