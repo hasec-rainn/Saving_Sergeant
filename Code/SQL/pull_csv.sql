@@ -19,7 +19,7 @@ CREATE TABLE temp_tbl (
 
 -- Copy everything into a temporary table.
 -- We will compress the strings into their corresponding keys further below.
-LOAD DATA LOCAL INFILE 'C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/Chase_Nairn-Howard_The_Book_Bin_2023-10-21.csv'
+LOAD DATA LOCAL INFILE 'C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/Chase_Nairn-Howard_HP_Pho_Ga_2019-04-01.csv'
 INTO TABLE temp_tbl
 COLUMNS TERMINATED BY ','
 LINES TERMINATED BY '\n';
