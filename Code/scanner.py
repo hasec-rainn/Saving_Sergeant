@@ -18,6 +18,7 @@ import numpy as np
 import subprocess
 import copy
 import time
+from os import remove
 
 # EDIT ME:
 # Change the below variables to match your own system
@@ -246,5 +247,9 @@ with open(csv_path,"w") as output_csv:
 		output_csv.write(str(item["quantity"]) + ",")
 		output_csv.write(str(item["dollars"]) + ",")
 		output_csv.write(item["item_key"] + "\n")
+
+#if we're not in debug mode, delete the processed image
+if not args["debug"]:
+	remove(image_path)
 
 print(transactions)
