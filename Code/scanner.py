@@ -9,7 +9,7 @@ https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesserac
 """
 
 import pytesseract
-options = r'--tessdata-dir "C:\Program Files\Tesseract-OCR\tessdata_best"'
+options = r'--tessdata-dir ' + r'"C:\Program Files\Tesseract-OCR\tessdata_best"'
 import argparse
 import imutils
 import cv2
@@ -18,15 +18,65 @@ import numpy as np
 import subprocess
 import copy
 import time
-from os import remove
+import os
 
-# EDIT ME:
-# Change the below variables to match your own system
-# and preferences
-receipt_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Receipts/"
-ocr_debug_output = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/"
-csv_data_folder = "C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/"
-who_purchased = input("Enter the full name of who made this transaction: ")
+#set up the correct directories
+cwd = os.getcwd().replace("\\","/")
+sys_root = cwd.split("/")[0] + "/"
+receipt_folder = cwd + "/" + "Receipts/"
+ocr_debug_output = cwd + "/"
+csv_data_folder = cwd + "/" + "Data/"
+
+#use BFS to find tesseract dir since most users will likely keep it
+#in Program Files/ or bin/
+# tess_dir = None
+# for root, dirs, _ in os.walk(cwd):
+# 	print(root)
+# 	time.sleep(0.25)
+# 	if "Tesseract-OCR" in dirs:
+# 		tess_dir = os.path.join(root, "Tesseract-OCR").replace("\\", "/")
+# 		break
+
+# use BFS to find tesseract dir since most users will likely keep it
+# in Program Files/ or bin/ (thus shallow BFS will find faster)
+# BFS Derived from Watty from
+# https://stackoverflow.com/questions/49654234/is-there-a-breadth-first-search-option-available-in-os-walk-or-equivalent-py
+tess_dir = None
+dirs = [sys_root]
+# while we have dirs to scan
+while len(dirs) :
+	nextDirs = []
+	for parent in dirs:
+		# attempt to get all the subdirectories in the parent
+		subdirs = None
+		try:
+			subdirs = os.listdir(parent)
+		except PermissionError: #skip this dir: don't have read permissions
+			subdirs = []
+		
+		#go through each subdir
+		for f in subdirs:
+			af = os.path.join(parent, f)
+			print(af)
+			# if we found the dir, break the loop
+			if f == "C:/" and  os.path.isdir(af):
+				tess_dir = af
+				dirs=[]
+				break
+			else: #otherwise, if its a directory, add it to the next level we search
+				if os.path.isdir(af) :
+					nextDirs.append(af)
+	# once we've done all the current dirs then
+	# we set up the next itter as the child dirs 
+	# from the current itter.
+	dirs = nextDirs
+
+print(tess_dir)
+#who_purchased = input("Enter the full name of who made this transaction: ")
+
+
+
+exit(0)
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
@@ -250,6 +300,6 @@ with open(csv_path,"w") as output_csv:
 
 #if we're not in debug mode, delete the processed image
 if not args["debug"]:
-	remove(image_path)
+	os.remove(image_path)
 
 print(transactions)
