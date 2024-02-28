@@ -27,8 +27,7 @@ receipt_folder = cwd + "/" + "Receipts/"
 ocr_debug_output = cwd + "/"
 csv_data_folder = cwd + "/" + "Data/"
 
-#use BFS to find tesseract dir since most users will likely keep it
-#in Program Files/ or bin/
+
 # tess_dir = None
 # for root, dirs, _ in os.walk(cwd):
 # 	print(root)
@@ -80,7 +79,7 @@ exit(0)
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
-# function by rinogo https://gist.github.com/rinogo/294e723ac9e53c23d131e5852312dfe8
+# function by rinogo, made available under MIT liscense: https://gist.github.com/rinogo/294e723ac9e53c23d131e5852312dfe8
 def optimal_resize(img, boxes):
 	median_height = np.median(boxes["height"])
 	print("median height is:", median_height)
