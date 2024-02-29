@@ -33,8 +33,9 @@ csv_data_folder = cwd + "/" + "Data/"
 tess_dir = None
 dirs = [sys_root]
 # while we have dirs to scan and have not exceeded our file search limit
-found = False; search_lim = 20000; i = 0
-while len(dirs) and not found and i <= search_lim:
+found = 0; e_msg = "Error: Tesseract and ImageMagik not found." #we want to find both tesseract and ImageMagik
+search_lim = 20000; i = 0
+while len(dirs) and found < 2 and i <= search_lim:
 	nextDirs = []
 	for parent in dirs:
 		# attempt to get all the subdirectories in the parent
@@ -48,27 +49,34 @@ while len(dirs) and not found and i <= search_lim:
 		for f in subdirs:
 			af = os.path.join(parent, f)
 			i = i+1
-			# if we found the dir, break the loop
+			# if we found a dir we want, break the loop
 			if f == "Tesseract-OCR" and  os.path.isdir(af):
 				tess_dir = af.replace("\\","/")
-				found = True
+				e_msg.replace("Tesseract and ", "")
+				found += 1
+			if "ImageMagick" in f and os.path.isdir(af):
+				e_msg.replace(" and ImageMagik", "")
+				found += 1
 			else: #otherwise, if its a directory, add it to the next level we search
 				if os.path.isdir(af) :
 					nextDirs.append(af)
 
-			if found or i > search_lim:
+			if found == 2 or i > search_lim:
 				break
 	# once we've done all the current dirs then
 	# we set up the next itter as the child dirs 
 	# from the current itter.
-	if found or i > search_lim:
+	if found == 2 or i > search_lim:
 		break
 	dirs = nextDirs
 
+
+if found < 2:
+	print(e_msg)
+	raise(FileNotFoundError)
+
 #Now that we know where tesseract is, we can tell
 #Tesseract where to find the data we want to use
-if not found:
-	raise(FileNotFoundError)
 options = r'--tessdata-dir ' + '"' + tess_dir + r"/tessdata_best" + '"'
 print(tess_dir)
 
