@@ -9,7 +9,6 @@ https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesserac
 """
 
 import pytesseract
-options = r'--tessdata-dir ' + r'"C:\Program Files\Tesseract-OCR\tessdata_best"'
 import argparse
 import imutils
 import cv2
@@ -27,23 +26,15 @@ receipt_folder = cwd + "/" + "Receipts/"
 ocr_debug_output = cwd + "/"
 csv_data_folder = cwd + "/" + "Data/"
 
-
-# tess_dir = None
-# for root, dirs, _ in os.walk(cwd):
-# 	print(root)
-# 	time.sleep(0.25)
-# 	if "Tesseract-OCR" in dirs:
-# 		tess_dir = os.path.join(root, "Tesseract-OCR").replace("\\", "/")
-# 		break
-
 # use BFS to find tesseract dir since most users will likely keep it
 # in Program Files/ or bin/ (thus shallow BFS will find faster)
 # BFS Derived from Watty from
 # https://stackoverflow.com/questions/49654234/is-there-a-breadth-first-search-option-available-in-os-walk-or-equivalent-py
 tess_dir = None
 dirs = [sys_root]
-# while we have dirs to scan
-while len(dirs) :
+# while we have dirs to scan and have not exceeded our file search limit
+found = False; search_lim = 20000; i = 0
+while len(dirs) and not found and i <= search_lim:
 	nextDirs = []
 	for parent in dirs:
 		# attempt to get all the subdirectories in the parent
@@ -56,26 +47,34 @@ while len(dirs) :
 		#go through each subdir
 		for f in subdirs:
 			af = os.path.join(parent, f)
-			print(af)
+			i = i+1
 			# if we found the dir, break the loop
-			if f == "C:/" and  os.path.isdir(af):
-				tess_dir = af
-				dirs=[]
-				break
+			if f == "Tesseract-OCR" and  os.path.isdir(af):
+				tess_dir = af.replace("\\","/")
+				found = True
 			else: #otherwise, if its a directory, add it to the next level we search
 				if os.path.isdir(af) :
 					nextDirs.append(af)
+
+			if found or i > search_lim:
+				break
 	# once we've done all the current dirs then
 	# we set up the next itter as the child dirs 
 	# from the current itter.
+	if found or i > search_lim:
+		break
 	dirs = nextDirs
 
+#Now that we know where tesseract is, we can tell
+#Tesseract where to find the data we want to use
+if not found:
+	raise(FileNotFoundError)
+options = r'--tessdata-dir ' + '"' + tess_dir + r"/tessdata_best" + '"'
 print(tess_dir)
-#who_purchased = input("Enter the full name of who made this transaction: ")
 
+#Finally, we need to know who made this transaction
+who_purchased = input("Enter the full name of who made this transaction: ")
 
-
-exit(0)
 
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
