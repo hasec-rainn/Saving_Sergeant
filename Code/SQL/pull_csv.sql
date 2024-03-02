@@ -19,6 +19,7 @@ CREATE TABLE temp_tbl (
 
 -- Copy everything into a temporary table.
 -- We will compress the strings into their corresponding keys further below.
+-- EDIT: change the path below to match the data you wish to import
 LOAD DATA LOCAL INFILE 'C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/Chase_Nairn-Howard_HP_Pho_Ga_2019-04-01.csv'
 INTO TABLE temp_tbl
 COLUMNS TERMINATED BY ','
