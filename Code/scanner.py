@@ -1,7 +1,5 @@
 """
-This program 
-
-references: 
+This program references the following: 
 https://pyimagesearch.com/2021/10/27/automatically-ocring-receipts-and-scans/
 https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
 https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
@@ -33,7 +31,8 @@ csv_data_folder = cwd + "/" + "Data/"
 tess_dir = None
 dirs = [sys_root]
 # while we have dirs to scan and have not exceeded our file search limit
-found = 0; e_msg = "Error: Tesseract and ImageMagik not found." #we want to find both tesseract and ImageMagik
+found = 0 #we want to find both tesseract and ImageMagik
+e_msg = "Error: Tesseract and ImageMagik not found."
 search_lim = 20000; i = 0
 while len(dirs) and found < 2 and i <= search_lim:
 	nextDirs = []
@@ -70,7 +69,7 @@ while len(dirs) and found < 2 and i <= search_lim:
 		break
 	dirs = nextDirs
 
-
+#Didn't find ImageMagik or Tesseract on system
 if found < 2:
 	print(e_msg)
 	raise(FileNotFoundError)
