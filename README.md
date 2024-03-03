@@ -13,13 +13,17 @@ A good example of this difference is grocery shopping. Rocket Money and your ban
 Some dependancies are needed to run this program. ImageMagik and Google's tesseract should be installed and accessable in your enviornment variables. Additionally, a database system such as MySQL is also necessary for running the SQL scripts and storing receipt data. You will also need Python 3.xx installed and in your path to execute `scanner.py`.
 
 The command line syntax for running the scanner portion of the program is `py scanner.py -i IMAGE_PATH [-d DEBUG_VALUE]`.
+
 `IMAGE_PATH` is the name (including the file type) of the receipt contained within the `Receipt/` directory you want to scan. 
 
 `DEBUG_VALUE` can either be 0 or 1. 
-If 0, the program will run in normal mode, producing a csv output of the scanned receipt.
-If 1, the program will run in debug mode. Everything done in normal mode will be done in addition to the following: the results of image preprocessing will be shown; bounding boxes where tesseract detected text in the image will be shown; a file `out.txt` will be created to show the exact text tesseract detected; the preprocess image will not be deleted after the program completes (this image will have `_border` at the end of its file name).
+
+    If 0, the program will run in normal mode, producing a csv output of the scanned receipt.
+
+    If 1, the program will run in debug mode. Everything done in normal mode will be done in addition to the following: the results of image preprocessing will be shown; bounding boxes where tesseract detected text in the image will be shown; a file `out.txt` will be created to show the exact text tesseract detected; the preprocess image will not be deleted after the program completes (this image will have `_border` at the end of its file name).
 
 To set up the SQL portion of the program, download MySQl (or another database system), set up a server, and create a database. Run `initialize_tables.sql` to create primary table, `transactions`, and all of its dependency tables.
+
 Next, add the following to `populate_dependency_tables.sql`: `INSERT INTO people VALUES (DEFAULT, <prompted_name>);`, where `<prompted_name>` is the name you entered when prompted by `scanner.py`. This allows the database to recognize the purchaser and accept the csv.
 
 To get the csv file into the database, change the path in the `LOAD DATA LOCAL INFILE` statement in `pull_csv.sql` to match the path of your csv. Then, execute `pull_csv.sql`.
