@@ -1,3 +1,9 @@
+-- Fills up all supporting tables with prerequisite data that is
+-- required for `transactions` to function properly.
+
+-- This is the file where new categories, vendors, brands, etc would
+-- be added.
+
 INSERT INTO categories VALUES
 (1, 'Income'),
 (2, 'Pet Stuff'),

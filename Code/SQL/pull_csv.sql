@@ -1,3 +1,6 @@
+-- Reads data from the specified INFILE into the table `transactions`
+-- INFILE should always specify a csv file created by scanner.py
+
 SET GLOBAL local_infile = 1; -- Must be enabled to pull locally (ie, to pull data from client)
 SET SQL_SAFE_UPDATES = 0; -- Must be disabled to enable table UPDATEs that don't use PK in WHERE clause
 
@@ -18,8 +21,9 @@ CREATE TABLE temp_tbl (
 );
 
 -- Copy everything into a temporary table.
--- We will compress the strings into their corresponding keys further below.
--- EDIT: change the path below to match the data you wish to import
+-- We will compress the strings into their corresponding keys (integers) 
+-- further below.
+-- EDIT HERE: change the path below to match the data you wish to import
 LOAD DATA LOCAL INFILE 'C:/Users/moono/OneDrive/Desktop/My_Stuff/Projects/Projects/Saving_Sergeant/Data/Chase_Nairn-Howard_HP_Pho_Ga_2019-04-01.csv'
 INTO TABLE temp_tbl
 COLUMNS TERMINATED BY ','

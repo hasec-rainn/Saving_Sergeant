@@ -1,3 +1,8 @@
+-- Creates the main data storing table, `transactions`, in addition
+-- to all the other tables which support it.
+-- **All tables will be(come) void of data upon executing this file.
+
+-- Avoid error of trying to create an already-existing table
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS vendors;
@@ -38,6 +43,7 @@ CREATE TABLE locations (
     PRIMARY KEY (location_id)
 );
 
+--
 CREATE TABLE transactions (
     vendor INT UNSIGNED NULL,
     brand INT UNSIGNED NULL,
