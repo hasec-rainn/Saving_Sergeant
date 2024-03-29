@@ -5,6 +5,7 @@ https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
 https://stackoverflow.com/questions/31633403/tesseract-receipt-scanning-advice-needed
 https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
 """
+############################## Begin Setup ##############################
 
 import pytesseract
 import argparse
@@ -82,7 +83,6 @@ print(tess_dir)
 #Finally, we need to know who made this transaction
 who_purchased = input("Enter the full name of who made this transaction: ")
 
-
 #Optimally resize `img` according to the bounding boxes specified in `boxes` (which is simply the (pruned) results from `pytesseract.image_to_data()`).
 #Tesseract performs optimally when capital letters are between [30,33]px tall (https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ).
 # function by rinogo, made available under MIT liscense: https://gist.github.com/rinogo/294e723ac9e53c23d131e5852312dfe8
@@ -106,8 +106,6 @@ def optimal_resize(img, boxes):
 
 	return cv2.resize(img, None, fx = scale_factor, fy = scale_factor, interpolation = interpolation)
 
-
-
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True,
@@ -115,6 +113,8 @@ ap.add_argument("-i", "--image", required=True,
 ap.add_argument("-d", "--debug", type=int, default=-1,
 	help="whether or not we are visualizing each step of the pipeline")
 args = vars(ap.parse_args())
+
+############################## Image Preprocessing ##############################
 
 # create and use new image with a border (tesseract works better with bordered images)
 image_path = receipt_folder + args["image"]
@@ -133,7 +133,7 @@ receipt = cv2.cvtColor(receipt,cv2.COLOR_BGR2GRAY)
 _, receipt = cv2.threshold(receipt,0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 #dynamically resize the image so characters are 32pt tall
-#see
+#for why, see https://groups.google.com/g/tesseract-ocr/c/Wdh_JJwnw94/m/24JHDYQbBQAJ?pli=1
 boxes = pytesseract.image_to_data(receipt, output_type=pytesseract.Output.DICT)
 receipt = optimal_resize(receipt, boxes)
 cv2.imwrite(image_path,receipt)
@@ -153,6 +153,8 @@ if args["debug"]:
 	cv2.imshow("Receipt BB", imutils.resize(debug_receipt, width=500))
 	cv2.waitKey(0)
 
+############################## Image Reading ##############################
+
 # apply OCR to the receipt image by assuming column data
 options += " " + "--psm 4"
 options += " " + "-c tessedit_char_whitelist=' .#$@0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'"
@@ -165,6 +167,7 @@ if args["debug"]:
 	with open(ocr_debug_output + "ocr_out.txt", "w") as f:
 		f.write(text)
 
+############################## Image Interpretation ##############################
 
 #data to be determined by the vendor
 transactions = [] #list used to hold all purchases/transactions
@@ -180,10 +183,8 @@ t = {
 	"dollars" : None
 }
 
-
 if "The Book Bin" in text:
 	#one of the cases where no additional preprocessing is required
-
 	#fill in some blanks about our transactions
 	t["vendor"] = "The Book Bin"
 	t["brand"] = ''
@@ -212,13 +213,11 @@ if "The Book Bin" in text:
 				new_transaction["item_key"] = lines[l+1]
 			else:
 				new_transaction["item_key"] = lines[l+2]
-
+			#place results in transactions
 			transactions.append(new_transaction)
-
 
 if "Dona Mercedes Restaurant" in text:
 	#one of the cases where no additional preprocessing is required
-
 	#fill in some blanks about our transactions
 	t["vendor"] = "Dona Mercedes Restaurant"
 	t["brand"] = ''
@@ -246,14 +245,12 @@ if "Dona Mercedes Restaurant" in text:
 			#all the other lines, when taken together, are the name of the item
 			re_str.pop(len(re_str)-1); re_str.pop(0)
 			new_transaction["item_key"] = ' '.join(re_str)
-			
-
+			#place results in transactions
 			transactions.append(new_transaction)
 
 
 if "HP Pho Ga" in text:
 	#one of the cases where no additional preprocessing is required
-
 	#fill in some blanks about our transactions
 	t["vendor"] = "HP Pho Ga"
 	t["brand"] = ''
@@ -282,10 +279,10 @@ if "HP Pho Ga" in text:
 			#all the other lines, when taken together, are the name of the item
 			re_str.pop(len(re_str)-1); re_str.pop(0)
 			new_transaction["item_key"] = ' '.join(re_str)
-			
-
+			#place results in transactions
 			transactions.append(new_transaction)
 
+############################## Output Read to CSV ##############################
 
 #create new csv file from transactions and place in Data folder with unique name
 csv_path = csv_data_folder + t["whose_transaction"].replace(" ","_") \
